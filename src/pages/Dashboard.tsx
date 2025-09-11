@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, FolderOpen, Calendar, FileText, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Plus, FolderOpen, Calendar, FileText, Trash2, CheckSquare, Square, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -9,6 +9,8 @@ import { Link } from 'react-router-dom';
 import CreateGroupDialog from '@/components/CreateGroupDialog';
 import Navbar from '@/components/Navbar';
 import SearchAndFilter, { SortOption, FilterOption } from '@/components/SearchAndFilter';
+import DownloadDialog from '@/components/DownloadDialog';
+import { downloadFilesAsZip, downloadFileIndividually } from '@/utils/zipDownload';
 
 interface FileGroup {
   id: string;
@@ -30,6 +32,8 @@ const Dashboard: React.FC = () => {
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
+  const [downloadingFiles, setDownloadingFiles] = useState<any[]>([]);
 
   useEffect(() => {
     fetchFileGroups();
@@ -174,6 +178,69 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const downloadSelectedGroups = async () => {
+    if (selectedGroups.size === 0) return;
+    
+    try {
+      // Get all files for selected groups
+      const { data: files, error } = await supabase
+        .from('files')
+        .select('id, name, storage_path, file_size')
+        .in('group_id', Array.from(selectedGroups));
+
+      if (error || !files || files.length === 0) {
+        toast({
+          title: "Error",
+          description: "No files found in selected groups",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setDownloadingFiles(files);
+      setShowDownloadDialog(true);
+    } catch (error) {
+      console.error('Error preparing download:', error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare download",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMassDownload = async (asZip: boolean, zipName?: string) => {
+    if (downloadingFiles.length === 0) return;
+
+    setShowDownloadDialog(false);
+    
+    try {
+      if (asZip && zipName) {
+        await downloadFilesAsZip(downloadingFiles, zipName);
+        toast({
+          title: "Success",
+          description: `Downloaded ${downloadingFiles.length} files as ${zipName}.zip`,
+        });
+      } else {
+        // Download individually
+        for (const file of downloadingFiles) {
+          await downloadFileIndividually(file);
+        }
+        toast({
+          title: "Success",
+          description: `Downloaded ${downloadingFiles.length} files individually`,
+        });
+      }
+    } catch (error) {
+      console.error('Error downloading files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download some files",
+        variant: "destructive",
+      });
+    }
+  };
+
   const deleteSelectedGroups = async () => {
     if (selectedGroups.size === 0) return;
     
@@ -267,10 +334,16 @@ const Dashboard: React.FC = () => {
               )}
               
               {selectionMode && selectedGroups.size > 0 && (
-                <Button onClick={() => setShowDeleteDialog(true)} variant="destructive" size="lg">
-                  <Trash2 className="h-5 w-5 mr-2" />
-                  Delete ({selectedGroups.size})
-                </Button>
+                <>
+                  <Button onClick={downloadSelectedGroups} variant="outline" size="lg">
+                    <Download className="h-5 w-5 mr-2" />
+                    Download ({selectedGroups.size})
+                  </Button>
+                  <Button onClick={() => setShowDeleteDialog(true)} variant="destructive" size="lg">
+                    <Trash2 className="h-5 w-5 mr-2" />
+                    Delete ({selectedGroups.size})
+                  </Button>
+                </>
               )}
               
               {selectionMode && (
@@ -442,14 +515,48 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Mobile FAB */}
-          <button 
-            className="fab sm:hidden animate-pulse-glow"
-            onClick={() => setShowCreateDialog(true)}
-            aria-label="Create new group"
-          >
-            <Plus className="h-6 w-6" />
-          </button>
+          {/* Mobile Action Buttons */}
+          <div className="sm:hidden">
+            {selectionMode ? (
+              <div className="fixed bottom-4 left-4 right-4 flex gap-2 z-40">
+                <Button onClick={toggleSelectionMode} variant="outline" className="flex-1">
+                  Cancel Selection
+                </Button>
+                {selectedGroups.size > 0 && (
+                  <>
+                    <Button onClick={downloadSelectedGroups} variant="outline" size="sm">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button onClick={() => setShowDeleteDialog(true)} variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                <Button onClick={selectAllGroups} variant="outline" size="sm">
+                  <CheckSquare className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+                {fileGroups.length > 0 && (
+                  <button 
+                    className="w-12 h-12 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110"
+                    onClick={toggleSelectionMode}
+                    aria-label="Select groups"
+                  >
+                    <Square className="h-5 w-5" />
+                  </button>
+                )}
+                <button 
+                  className="fab animate-pulse-glow"
+                  onClick={() => setShowCreateDialog(true)}
+                  aria-label="Create new group"
+                >
+                  <Plus className="h-6 w-6" />
+                </button>
+              </div>
+            )}
+          </div>
 
           <CreateGroupDialog 
             open={showCreateDialog}
@@ -473,6 +580,13 @@ const Dashboard: React.FC = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          <DownloadDialog
+            open={showDownloadDialog}
+            onOpenChange={setShowDownloadDialog}
+            fileCount={downloadingFiles.length}
+            onDownload={handleMassDownload}
+          />
         </div>
       </div>
     </>
