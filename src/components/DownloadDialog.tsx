@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Download, Archive, Files, Shuffle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Download, Archive, Files, Shuffle, Sparkles } from 'lucide-react';
 
 interface DownloadDialogProps {
   open: boolean;
@@ -13,11 +14,11 @@ interface DownloadDialogProps {
 }
 
 const generateRandomZipName = (): string => {
-  const adjectives = ['Quick', 'Smart', 'Super', 'Magic', 'Epic', 'Cool', 'Swift', 'Bold'];
-  const nouns = ['Files', 'Pack', 'Bundle', 'Archive', 'Collection', 'Set', 'Batch', 'Group'];
+  const adjectives = ['Quick', 'Smart', 'Super', 'Magic', 'Epic', 'Cool', 'Swift', 'Bold', 'Prime', 'Ultra'];
+  const nouns = ['Files', 'Pack', 'Bundle', 'Archive', 'Collection', 'Set', 'Batch', 'Group', 'Cache', 'Vault'];
   const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
   const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-  const randomNumber = Math.floor(Math.random() * 1000);
+  const randomNumber = Math.floor(Math.random() * 999) + 1;
   return `${randomAdjective}_${randomNoun}_${randomNumber}`;
 };
 
@@ -46,129 +47,115 @@ const DownloadDialog: React.FC<DownloadDialogProps> = ({
     setDownloadType('individual');
   };
 
+  const resetState = () => {
+    setZipName('');
+    setDownloadType('individual');
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md gradient-card z-[9999] pointer-events-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-primary" />
-            Download {fileCount} Files
+    <Dialog open={open} onOpenChange={(open) => {
+      onOpenChange(open);
+      if (!open) resetState();
+    }}>
+      <DialogContent className="sm:max-w-lg bg-card border border-border/50 shadow-2xl">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Download className="h-5 w-5 text-primary" />
+            </div>
+            Download {fileCount} {fileCount === 1 ? 'File' : 'Files'}
           </DialogTitle>
-          <DialogDescription>
-            Choose how you'd like to download these files
+          <DialogDescription className="text-muted-foreground">
+            Choose your preferred download method below
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4 pointer-events-auto">
-          {/* Download Type Selection */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Download Options</Label>
-            
-            {/* Individual Files Option */}
-            <button 
-              type="button"
-              className={`w-full p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 text-left pointer-events-auto ${
+        <div className="space-y-6 py-6">
+          <RadioGroup
+            value={downloadType}
+            onValueChange={(value) => setDownloadType(value as 'individual' | 'zip')}
+            className="space-y-4"
+          >
+            {/* Individual Download Option */}
+            <div className="relative">
+              <div className={`rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer hover:border-primary/50 ${
                 downloadType === 'individual' 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:border-border/80'
-              }`}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDownloadType('individual');
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-4 h-4 rounded-full border-2 mt-0.5 transition-all duration-300 ${
-                  downloadType === 'individual' 
-                    ? 'border-primary bg-primary' 
-                    : 'border-muted-foreground'
-                }`}>
-                  {downloadType === 'individual' && (
-                    <div className="w-full h-full rounded-full bg-background scale-50"></div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Files className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Download Individually</span>
+                  ? 'border-primary bg-primary/5 shadow-sm' 
+                  : 'border-border'
+              }`}>
+                <Label htmlFor="individual" className="flex items-start gap-4 cursor-pointer">
+                  <RadioGroupItem value="individual" id="individual" className="mt-1" />
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Files className="h-4 w-4 text-primary" />
+                      <span className="font-semibold">Download Individually</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Each file downloads separately - perfect for selective saving and organization
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Each file will be downloaded separately to your device
-                  </p>
-                </div>
+                </Label>
               </div>
-            </button>
+            </div>
 
-            {/* Zip Archive Option */}
-            <button 
-              type="button"
-              className={`w-full p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 text-left pointer-events-auto ${
+            {/* ZIP Download Option */}
+            <div className="relative">
+              <div className={`rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer hover:border-primary/50 ${
                 downloadType === 'zip' 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:border-border/80'
-              }`}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDownloadType('zip');
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-4 h-4 rounded-full border-2 mt-0.5 transition-all duration-300 ${
-                  downloadType === 'zip' 
-                    ? 'border-primary bg-primary' 
-                    : 'border-muted-foreground'
-                }`}>
-                  {downloadType === 'zip' && (
-                    <div className="w-full h-full rounded-full bg-background scale-50"></div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Archive className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Download as ZIP Archive</span>
+                  ? 'border-primary bg-primary/5 shadow-sm' 
+                  : 'border-border'
+              }`}>
+                <Label htmlFor="zip" className="flex items-start gap-4 cursor-pointer">
+                  <RadioGroupItem value="zip" id="zip" className="mt-1" />
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Archive className="h-4 w-4 text-primary" />
+                      <span className="font-semibold">Download as ZIP Archive</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      All files compressed into one convenient archive - ideal for bulk transfers
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    All files will be compressed into a single ZIP file
-                  </p>
-                </div>
+                </Label>
               </div>
-            </button>
-          </div>
+            </div>
+          </RadioGroup>
 
-          {/* ZIP Name Input */}
+          {/* ZIP Name Configuration */}
           {downloadType === 'zip' && (
-            <div className="space-y-2 animate-fade-in">
-              <Label htmlFor="zipName" className="text-sm font-medium">
-                ZIP File Name (Optional)
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="zipName"
-                  value={zipName}
-                  onChange={(e) => setZipName(e.target.value)}
-                  placeholder="Enter custom name or leave empty"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleRandomName();
-                  }}
-                  className="px-3 pointer-events-auto"
-                  title="Generate random name"
-                >
-                  <Shuffle className="h-4 w-4" />
-                </Button>
+            <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+              <div className="h-px bg-border/50" />
+              
+              <div className="space-y-3">
+                <Label htmlFor="zipName" className="text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Archive Name
+                </Label>
+                
+                <div className="flex gap-2">
+                  <Input
+                    id="zipName"
+                    value={zipName}
+                    onChange={(e) => setZipName(e.target.value)}
+                    placeholder="Enter custom name (optional)"
+                    className="flex-1 bg-background/50"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRandomName}
+                    className="px-4 hover:bg-primary/10 hover:border-primary/50"
+                    title="Generate random name"
+                  >
+                    <Shuffle className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  💡 Leave empty for auto-generated name
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Leave empty to auto-generate a name
-              </p>
             </div>
           )}
         </div>
@@ -183,15 +170,11 @@ const DownloadDialog: React.FC<DownloadDialogProps> = ({
             Cancel
           </Button>
           <Button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleDownload();
-            }}
-            className="flex-1 btn-gradient pointer-events-auto"
+            onClick={handleDownload}
+            className="flex-1 bg-primary hover:bg-primary/90"
           >
             <Download className="h-4 w-4 mr-2" />
-            Download {downloadType === 'zip' ? 'ZIP' : 'Files'}
+            {downloadType === 'zip' ? 'Create ZIP' : 'Download Files'}
           </Button>
         </div>
       </DialogContent>
