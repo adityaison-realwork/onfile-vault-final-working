@@ -32,8 +32,8 @@ export const downloadFilesAsZip = async (
       // Add file to zip
       zip.file(file.name, data);
       
-      // Update progress
-      const progress = ((i + 1) / files.length) * 100;
+      // Update progress (0-80% while fetching files)
+      const progress = Math.min(80, Math.floor(((i + 1) / files.length) * 80));
       onProgress?.(progress);
     } catch (error) {
       console.error(`Error downloading ${file.name}:`, error);
@@ -41,7 +41,11 @@ export const downloadFilesAsZip = async (
   }
   
   // Generate zip file
-  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  const zipBlob = await zip.generateAsync({ type: 'blob' }, (metadata) => {
+    const percent = (metadata as any)?.percent ?? 0;
+    // Update progress (80-100% while generating zip)
+    onProgress?.(80 + percent * 0.2);
+  });
   
   // Create download link
   const url = URL.createObjectURL(zipBlob);

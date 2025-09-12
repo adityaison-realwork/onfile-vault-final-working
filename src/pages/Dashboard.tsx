@@ -10,7 +10,7 @@ import CreateGroupDialog from '@/components/CreateGroupDialog';
 import Navbar from '@/components/Navbar';
 import SearchAndFilter, { SortOption, FilterOption } from '@/components/SearchAndFilter';
 import DownloadDialog from '@/components/DownloadDialog';
-import { downloadFilesAsZip, downloadFileIndividually } from '@/utils/zipDownload';
+import { useUpload } from '@/contexts/UploadContext';
 
 interface FileGroup {
   id: string;
@@ -34,6 +34,7 @@ const Dashboard: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDownloadDialog, setShowDownloadDialog] = useState(false);
   const [downloadingFiles, setDownloadingFiles] = useState<any[]>([]);
+  const { startDownload } = useUpload();
 
   useEffect(() => {
     fetchFileGroups();
@@ -215,27 +216,16 @@ const Dashboard: React.FC = () => {
     setShowDownloadDialog(false);
     
     try {
-      if (asZip && zipName) {
-        await downloadFilesAsZip(downloadingFiles, zipName);
-        toast({
-          title: "Success",
-          description: `Downloaded ${downloadingFiles.length} files as ${zipName}.zip`,
-        });
-      } else {
-        // Download individually
-        for (const file of downloadingFiles) {
-          await downloadFileIndividually(file);
-        }
-        toast({
-          title: "Success",
-          description: `Downloaded ${downloadingFiles.length} files individually`,
-        });
-      }
+      await startDownload(downloadingFiles, 'multiple', 'Selected Groups', asZip, zipName);
+      toast({
+        title: "Download started",
+        description: "Track progress in the Downloads page",
+      });
     } catch (error) {
-      console.error('Error downloading files:', error);
+      console.error('Error starting downloads:', error);
       toast({
         title: "Error",
-        description: "Failed to download some files",
+        description: "Failed to start downloads",
         variant: "destructive",
       });
     }
@@ -359,6 +349,31 @@ const Dashboard: React.FC = () => {
                 <span className="md:hidden">Create</span>
               </Button>
             </div>
+          </div>
+
+          {/* Mobile Actions (Top) */}
+          <div className="sm:hidden flex flex-wrap items-center gap-2 mb-4">
+            {fileGroups.length > 0 && (
+              <Button onClick={toggleSelectionMode} variant="outline" size="sm">
+                {selectionMode ? 'Cancel' : 'Select'}
+              </Button>
+            )}
+            {selectionMode && selectedGroups.size > 0 && (
+              <>
+                <Button onClick={downloadSelectedGroups} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-1" /> Download
+                </Button>
+                <Button onClick={() => setShowDeleteDialog(true)} variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                </Button>
+              </>
+            )}
+            {selectionMode && (
+              <Button onClick={selectAllGroups} variant="outline" size="sm">
+                <CheckSquare className="h-4 w-4 mr-1" />
+                {selectedGroups.size === filteredAndSortedGroups.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            )}
           </div>
 
           {/* Search and Filters */}
@@ -537,16 +552,7 @@ const Dashboard: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
-                {fileGroups.length > 0 && (
-                  <button 
-                    className="w-12 h-12 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110"
-                    onClick={toggleSelectionMode}
-                    aria-label="Select groups"
-                  >
-                    <Square className="h-5 w-5" />
-                  </button>
-                )}
+              <div className="fixed bottom-4 right-4 z-40">
                 <button 
                   className="fab animate-pulse-glow"
                   onClick={() => setShowCreateDialog(true)}
