@@ -197,7 +197,11 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setFiles([])}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFiles([]);
+                  }}
                   disabled={isLoading}
                   className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive"
                 >
