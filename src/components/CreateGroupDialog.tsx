@@ -195,7 +195,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
                 <Label className="text-sm font-medium">Selected Files ({files.length})</Label>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={(e) => {
                     e.preventDefault();
@@ -203,8 +203,9 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
                     setFiles([]);
                   }}
                   disabled={isLoading}
-                  className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive cursor-pointer"
+                  className="text-xs h-8 px-3 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground cursor-pointer transition-all"
                 >
+                  <X className="h-3 w-3 mr-1" />
                   Clear All
                 </Button>
               </div>
