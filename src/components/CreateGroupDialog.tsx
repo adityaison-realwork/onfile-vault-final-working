@@ -203,7 +203,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
                     setFiles([]);
                   }}
                   disabled={isLoading}
-                  className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive"
+                  className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive cursor-pointer"
                 >
                   Clear All
                 </Button>
